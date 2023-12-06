@@ -1,5 +1,5 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import icon from '../../assets/catImg.jpg';
 import './App.css';
 
@@ -10,48 +10,42 @@ interface Facts {
   used: string;
 }
 const CatFacts: React.FC = () => {
-  const [dailyFacts, setDailyFacts] = useState<Facts[]>([]);
+  const [dailyFact, setDailyFact] = useState<string>('');
   const [favorites, setFavorites] = useState<string[]>([]);
+  const favRef = useRef([]);
 
-  async function listFacts() {
+  const getRandomItem = (array: Facts[]) => {
+    if (array.length === 0) {
+      return undefined;
+    }
+
+    const randomIndex = Math.floor(Math.random() * array.length);
+    return array[randomIndex];
+  };
+  const listFacts = async () => {
     try {
       const response = await fetch('https://cat-fact.herokuapp.com/facts');
       const catFacts = await response.json();
-      console.log('catFacts::::', catFacts);
-      setDailyFacts(catFacts);
+
+      const resultArray = catFacts.filter(
+        (element) => !favRef.current.includes(element.text)
+      );
+      const randomItem = getRandomItem(resultArray);
+      setDailyFact(randomItem?.text);
     } catch (error) {
       console.error('error here');
     }
-  }
+  };
 
   useEffect(() => {
     listFacts();
   }, []);
 
   const addToFavorites = (factText: string) => {
-    console.log('factText:::::', factText);
     setFavorites((prevFavorites) => [...prevFavorites, factText]);
+    favRef.current = [...favRef.current, factText ?? ''];
+    listFacts();
   };
-
-  const listItems = dailyFacts.map((dailyFact) => (
-    <div>
-      {' '}
-      <ol
-        style={{ marginBottom: '20px', cursor: 'pointer' }}
-        className="hover-effect"
-        key={dailyFact._id}
-        onClick={() => addToFavorites(dailyFact.text)}
-      >
-        {dailyFact.text}
-      </ol>
-      {/* <div className="hidden-div">
-        <ul style={{ listStyleType: 'none', padding: 0 }}>
-          <li style={{ marginBottom: '8px' }}>Add to Favorites</li>
-          <li style={{ marginBottom: '8px' }}>Delete</li>
-        </ul>
-      </div> */}
-    </div>
-  ));
 
   return (
     <div>
@@ -59,7 +53,7 @@ const CatFacts: React.FC = () => {
         <img width="100" alt="icon" src={icon} />
       </div>
       <h1 className="CatHead">Cat Facts</h1>
-      <ul>{listItems}</ul>
+      <ul onClick={() => addToFavorites(dailyFact)}>{dailyFact}</ul>
       <div className="favorites-container">
         <h2>Favorites:</h2>
         <ul>
